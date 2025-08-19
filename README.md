@@ -6,6 +6,8 @@
 
 <div align="center">
 
+![插件介绍](intro.png)
+
 ![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
 ![Obsidian](https://img.shields.io/badge/obsidian-%3E%3D0.15.0-purple.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
