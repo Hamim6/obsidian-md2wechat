@@ -6,9 +6,9 @@
 
 <div align="center">
 
-![插件介绍](intro.png)
+![插件操作演示](intro.gif)
 
-![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
+![Version](https://img.shields.io/badge/version-1.0.1-blue.svg)
 ![Obsidian](https://img.shields.io/badge/obsidian-%3E%3D0.15.0-purple.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![TypeScript](https://img.shields.io/badge/typescript-4.7.4-blue.svg)
@@ -20,25 +20,70 @@
 - 🚀 **一键转换**: 通过功能区按钮或命令面板快速转换
 - 🎨 **多种主题**: 支持多种预设主题样式
 - 📝 **实时预览**: 右侧窗口实时展示转换效果
-- ⚙️ **灵活配置**: 可自定义 API Key、主题和字体大小
+- ⚡ **智能样式切换**: 预览窗口内直接切换主题和字体大小，无需重新打开文件
+- ⚙️ **灵活配置**: 抽屉式设置面板，极简化操作体验
 - 🔄 **即时同步**: 修改后立即可重新转换预览
 - 📱 **全平台**: 支持桌面和移动端 Obsidian
 - 🛡️ **错误处理**: 完善的异常提示和用户反馈
 
 ## 📸 预览
 
+### 🎨 主题样式展示
+
+我们提供多种精美主题，满足不同的公众号风格需求：
+
+<div align="center">
+
+<table>
+<tr>
+<td align="center" width="50%">
+
+**🌟 默认温暖风**<br>
+*温馨舒适，适合日常内容*
+
+<img src="intro_default.png" alt="默认温暖风主题" width="300"/>
+
+</td>
+<td align="center" width="50%">
+
+**🍎 苹果风**<br>
+*极简优雅，设计感突出*
+
+<img src="intro_apple.png" alt="苹果风主题" width="300"/>
+
+</td>
+</tr>
+<tr>
+<td align="center" width="50%">
+
+**🔷 字节范**<br>
+*简洁现代，科技感强*
+
+<img src="intro_bytedance.png" alt="字节范主题" width="300"/>
+
+</td>
+<td align="center" width="50%">
+
+**🌌 赛博朋克**<br>
+*未来科幻，个性十足*
+
+<img src="intro_cyber.png" alt="赛博朋克主题" width="300"/>
+
+</td>
+</tr>
+</table>
+
+</div>
+
+### ⚡ 智能样式切换
+
+现在你可以在预览窗口中**实时切换主题和字体大小**：
+
 ```
-┌─ Obsidian ─────────────────┬─ 预览窗口 ──────────────┐
-│ # 我的文章标题              │  📰 公众号样式预览        │
-│                            │                         │
-│ ## 章节标题                 │  [转换后的样式化内容]     │
-│                            │                         │
-│ 这里是正文内容...           │  [支持一键复制到剪贴板]   │
-│                            │                         │
-│ - 列表项 1                 │                         │
-│ - 列表项 2                 │                         │
-└────────────────────────────┴─────────────────────────┘
+转换文档 → 点击设置图标 ⚙️ → 选择新主题 → 立即看到效果 ✨
 ```
+
+无需重新打开文件，无需重复操作，一键切换，即时生效！
 
 ## 🚀 快速开始
 
