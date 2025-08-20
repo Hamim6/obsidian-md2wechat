@@ -1,6 +1,7 @@
 // view.ts
 
-import { ItemView, WorkspaceLeaf } from 'obsidian';
+import { ItemView, WorkspaceLeaf, setIcon, Notice, MarkdownView } from 'obsidian';
+import type Md2WechatPlugin from './main';
 
 export const MD2WECHAT_VIEW_TYPE = 'md2wechat-html-view';
 
@@ -8,10 +9,17 @@ export class Md2WechatView extends ItemView {
   private contentWrapper: HTMLElement;
   private previewContainer: HTMLElement;
   private toolbarEl: HTMLElement;
+  private drawerEl: HTMLElement;
+  private overlayEl: HTMLElement;
+  private plugin: Md2WechatPlugin;
+  private themeSelect: HTMLSelectElement;
+  private fontSizeSelect: HTMLSelectElement;
+  private isDrawerOpen = false;
+  private currentMarkdownContent: string | null = null; // 存储当前的 Markdown 内容
 
-  constructor(leaf: WorkspaceLeaf) {
+  constructor(leaf: WorkspaceLeaf, plugin: Md2WechatPlugin) {
     super(leaf);
-    this.initializeView();
+    this.plugin = plugin;
   }
 
   private initializeView() {
@@ -23,33 +31,320 @@ export class Md2WechatView extends ItemView {
       cls: 'md2wechat-view-wrapper'
     });
 
-    // 创建工具栏
+    // 创建极简工具栏
     this.toolbarEl = this.contentWrapper.createEl('div', {
-      cls: 'md2wechat-toolbar'
+      cls: 'md2wechat-minimal-toolbar'
     });
-    
+
+    // 左侧标题
     const titleEl = this.toolbarEl.createEl('div', {
       cls: 'md2wechat-toolbar-title',
       text: '公众号样式预览'
     });
 
-    // 按钮组容器
-    const buttonGroup = this.toolbarEl.createEl('div', {
-      cls: 'md2wechat-button-group'
+    // 右侧图标按钮组
+    const iconGroup = this.toolbarEl.createEl('div', {
+      cls: 'md2wechat-icon-group'
     });
 
-    const copyBtn = buttonGroup.createEl('button', {
-      cls: 'md2wechat-copy-btn',
-      text: '复制内容'
+    // 设置图标 - 纯图标无容器
+    const settingsIcon = iconGroup.createEl('div', {
+      cls: 'md2wechat-icon md2wechat-settings-icon',
+      attr: { 
+        'aria-label': '排版设置', 
+        'title': '点击打开排版设置面板，可调整主题和字体大小' 
+      }
+    });
+    settingsIcon.addEventListener('click', () => this.toggleDrawer());
+
+    // 复制图标 - 纯图标无容器  
+    const copyIcon = iconGroup.createEl('div', {
+      cls: 'md2wechat-icon md2wechat-copy-icon',
+      attr: { 
+        'aria-label': '复制内容', 
+        'title': '复制转换后的HTML内容到剪贴板，可直接粘贴到微信公众号编辑器' 
+      }
+    });
+    copyIcon.addEventListener('click', () => this.copyContent());
+
+    // 打开公众号图标 - 纯图标无容器
+    const wechatIcon = iconGroup.createEl('div', {
+      cls: 'md2wechat-icon md2wechat-wechat-icon',
+      attr: { 
+        'aria-label': '打开公众号', 
+        'title': '在新标签页打开微信公众号后台，方便粘贴内容' 
+      }
+    });
+    wechatIcon.addEventListener('click', () => this.openWechat());
+
+    // 创建遮罩层
+    this.overlayEl = this.contentWrapper.createEl('div', {
+      cls: 'md2wechat-overlay'
+    });
+    this.overlayEl.addEventListener('click', () => this.closeDrawer());
+
+    // 创建抽屉面板
+    this.drawerEl = this.contentWrapper.createEl('div', {
+      cls: 'md2wechat-drawer'
     });
 
-    const wechatBtn = buttonGroup.createEl('button', {
-      cls: 'md2wechat-wechat-btn',
-      text: '打开公众号'
+    // 抽屉头部
+    const drawerHeader = this.drawerEl.createEl('div', {
+      cls: 'md2wechat-drawer-header'
     });
 
-    copyBtn.addEventListener('click', () => this.copyContent());
-    wechatBtn.addEventListener('click', () => this.openWechat());
+    drawerHeader.createEl('h3', {
+      cls: 'md2wechat-drawer-title',
+      text: '排版设置'
+    });
+
+    const closeIcon = drawerHeader.createEl('div', {
+      cls: 'md2wechat-drawer-close-icon',
+      attr: { 
+        'aria-label': '关闭设置', 
+        'title': '关闭排版设置面板' 
+      }
+    });
+    closeIcon.addEventListener('click', () => this.closeDrawer());
+
+    // 抽屉内容
+    const drawerContent = this.drawerEl.createEl('div', {
+      cls: 'md2wechat-drawer-content'
+    });
+
+    // 🔧 自定义主题选择器 - 替代原生select解决显示问题
+    const themeSection = drawerContent.createEl('div', {
+      cls: 'md2wechat-drawer-section'
+    });
+    
+    themeSection.createEl('label', {
+      cls: 'md2wechat-drawer-label',
+      text: '主题风格'
+    });
+    
+    // 创建自定义下拉选择器容器
+    const themeDropdown = themeSection.createEl('div', {
+      cls: 'md2wechat-custom-select'
+    });
+    
+    // 创建显示当前值的按钮
+    const themeDisplayButton = themeDropdown.createEl('button', {
+      cls: 'md2wechat-custom-select-button',
+      type: 'button'
+    });
+    
+    // 创建下拉箭头
+    const themeArrow = themeDisplayButton.createEl('span', {
+      cls: 'md2wechat-custom-select-arrow',
+      text: '▼'
+    });
+    
+    // 创建选项列表
+    const themeOptionsList = themeDropdown.createEl('div', {
+      cls: 'md2wechat-custom-select-options'
+    });
+    
+    // 主题数据
+    const themes = [
+      { value: 'default', text: '默认温暖风' },
+      { value: 'bytedance', text: '字节范' },
+      { value: 'apple', text: '苹果风' },
+      { value: 'sports', text: '运动风' },
+      { value: 'chinese', text: '中国风' },
+      { value: 'cyber', text: '赛博朋克' }
+    ];
+    
+    let selectedTheme = this.plugin.settings.theme;
+    let themeDropdownOpen = false;
+    
+    // 更新显示文本的函数
+    const updateThemeDisplay = () => {
+      const currentTheme = themes.find(t => t.value === selectedTheme);
+      themeDisplayButton.textContent = currentTheme?.text || '请选择主题';
+      themeDisplayButton.appendChild(themeArrow);
+    };
+    
+    // 创建选项元素
+    themes.forEach(theme => {
+      const optionEl = themeOptionsList.createEl('div', {
+        cls: 'md2wechat-custom-select-option',
+        text: theme.text
+      });
+      
+      if (theme.value === selectedTheme) {
+        optionEl.addClass('md2wechat-custom-select-option-selected');
+      }
+      
+      optionEl.addEventListener('click', () => {
+        // 更新选中状态
+        themeOptionsList.querySelectorAll('.md2wechat-custom-select-option').forEach(opt => {
+          opt.removeClass('md2wechat-custom-select-option-selected');
+        });
+        optionEl.addClass('md2wechat-custom-select-option-selected');
+        
+        // 更新值
+        selectedTheme = theme.value;
+        updateThemeDisplay();
+        
+        // 关闭下拉列表
+        themeOptionsList.removeClass('md2wechat-custom-select-options-open');
+        themeDropdownOpen = false;
+        themeArrow.textContent = '▼';
+        
+        // 保存设置变化
+        this.plugin.settings.theme = selectedTheme;
+        this.plugin.saveSettings();
+        
+        // 如果有内容则尝试重新转换
+        this.triggerReconversion();
+      });
+    });
+    
+    // 按钮点击事件
+    themeDisplayButton.addEventListener('click', (e) => {
+      e.preventDefault();
+      themeDropdownOpen = !themeDropdownOpen;
+      
+      if (themeDropdownOpen) {
+        themeOptionsList.addClass('md2wechat-custom-select-options-open');
+        themeArrow.textContent = '▲';
+      } else {
+        themeOptionsList.removeClass('md2wechat-custom-select-options-open');
+        themeArrow.textContent = '▼';
+      }
+    });
+    
+    // 点击外部关闭下拉列表
+    document.addEventListener('click', (e) => {
+      if (!themeDropdown.contains(e.target as Node)) {
+        themeOptionsList.removeClass('md2wechat-custom-select-options-open');
+        themeDropdownOpen = false;
+        themeArrow.textContent = '▼';
+      }
+    });
+    
+    // 初始化显示
+    updateThemeDisplay();
+    
+    // 为兼容性保留select引用（指向隐藏元素）
+    this.themeSelect = document.createElement('select');
+    this.themeSelect.value = selectedTheme;
+
+    // 🔧 自定义字体大小选择器 - 替代原生select解决显示问题
+    const fontSection = drawerContent.createEl('div', {
+      cls: 'md2wechat-drawer-section'
+    });
+    
+    fontSection.createEl('label', {
+      cls: 'md2wechat-drawer-label', 
+      text: '字体大小'
+    });
+    
+    // 创建自定义下拉选择器容器
+    const fontDropdown = fontSection.createEl('div', {
+      cls: 'md2wechat-custom-select'
+    });
+    
+    // 创建显示当前值的按钮
+    const fontDisplayButton = fontDropdown.createEl('button', {
+      cls: 'md2wechat-custom-select-button',
+      type: 'button'
+    });
+    
+    // 创建下拉箭头
+    const fontArrow = fontDisplayButton.createEl('span', {
+      cls: 'md2wechat-custom-select-arrow',
+      text: '▼'
+    });
+    
+    // 创建选项列表
+    const fontOptionsList = fontDropdown.createEl('div', {
+      cls: 'md2wechat-custom-select-options'
+    });
+    
+    // 字体数据
+    const fontSizes = [
+      { value: 'small', text: '小号' },
+      { value: 'medium', text: '中等' },
+      { value: 'large', text: '大号' }
+    ];
+    
+    let selectedFontSize = this.plugin.settings.fontSize;
+    let fontDropdownOpen = false;
+    
+    // 更新显示文本的函数
+    const updateFontDisplay = () => {
+      const currentFontSize = fontSizes.find(f => f.value === selectedFontSize);
+      fontDisplayButton.textContent = currentFontSize?.text || '请选择字体大小';
+      fontDisplayButton.appendChild(fontArrow);
+    };
+    
+    // 创建选项元素
+    fontSizes.forEach(size => {
+      const optionEl = fontOptionsList.createEl('div', {
+        cls: 'md2wechat-custom-select-option',
+        text: size.text
+      });
+      
+      if (size.value === selectedFontSize) {
+        optionEl.addClass('md2wechat-custom-select-option-selected');
+      }
+      
+      optionEl.addEventListener('click', () => {
+        // 更新选中状态
+        fontOptionsList.querySelectorAll('.md2wechat-custom-select-option').forEach(opt => {
+          opt.removeClass('md2wechat-custom-select-option-selected');
+        });
+        optionEl.addClass('md2wechat-custom-select-option-selected');
+        
+        // 更新值
+        selectedFontSize = size.value as 'small' | 'medium' | 'large';
+        updateFontDisplay();
+        
+        // 关闭下拉列表
+        fontOptionsList.removeClass('md2wechat-custom-select-options-open');
+        fontDropdownOpen = false;
+        fontArrow.textContent = '▼';
+        
+        // 保存设置变化
+        this.plugin.settings.fontSize = selectedFontSize;
+        this.plugin.saveSettings();
+        
+        // 如果有内容则尝试重新转换
+        this.triggerReconversion();
+      });
+    });
+    
+    // 按钮点击事件
+    fontDisplayButton.addEventListener('click', (e) => {
+      e.preventDefault();
+      fontDropdownOpen = !fontDropdownOpen;
+      
+      if (fontDropdownOpen) {
+        fontOptionsList.addClass('md2wechat-custom-select-options-open');
+        fontArrow.textContent = '▲';
+      } else {
+        fontOptionsList.removeClass('md2wechat-custom-select-options-open');
+        fontArrow.textContent = '▼';
+      }
+    });
+    
+    // 点击外部关闭下拉列表
+    document.addEventListener('click', (e) => {
+      if (!fontDropdown.contains(e.target as Node)) {
+        fontOptionsList.removeClass('md2wechat-custom-select-options-open');
+        fontDropdownOpen = false;
+        fontArrow.textContent = '▼';
+      }
+    });
+    
+    // 初始化显示
+    updateFontDisplay();
+    
+    // 为兼容性保留select引用（指向隐藏元素）
+    this.fontSizeSelect = document.createElement('select');
+    this.fontSizeSelect.value = selectedFontSize;
+
 
     // 创建预览容器
     this.previewContainer = this.contentWrapper.createEl('div', {
@@ -63,6 +358,12 @@ export class Md2WechatView extends ItemView {
 
     // 设置初始提示内容
     this.setInitialContent(contentArea);
+    
+    // 设置图标
+    setIcon(settingsIcon, 'settings');
+    setIcon(copyIcon, 'copy');
+    setIcon(wechatIcon, 'external-link');
+    setIcon(closeIcon, 'x');
   }
 
   private setInitialContent(container: HTMLElement) {
@@ -83,19 +384,11 @@ export class Md2WechatView extends ItemView {
   private async copyContent() {
     const contentArea = this.previewContainer.querySelector('.md2wechat-content-area');
     if (contentArea && contentArea.innerHTML && !contentArea.querySelector('.md2wechat-placeholder')) {
-      
-      console.log('开始复制内容...');
-      console.log('内容区域:', contentArea);
-      console.log('HTML 长度:', contentArea.innerHTML.length);
-      
-      const btn = this.toolbarEl.querySelector('.md2wechat-copy-btn') as HTMLElement;
-      const originalText = btn.textContent;
+      const btn = this.toolbarEl.querySelector('.md2wechat-copy-icon') as HTMLElement;
       
       try {
         // 方案1: 现代 Clipboard API - 支持多种格式
         if (navigator.clipboard && navigator.clipboard.write) {
-          console.log('尝试使用 Clipboard API (方案1)');
-          
           const htmlContent = contentArea.innerHTML;
           const textContent = contentArea.textContent || (contentArea as HTMLElement).innerText || '';
           
@@ -107,106 +400,60 @@ export class Md2WechatView extends ItemView {
           ];
           
           await navigator.clipboard.write(clipboardItems);
-          console.log('Clipboard API 复制成功');
-          
-          btn.textContent = '复制成功!';
-          btn.style.backgroundColor = '#34c759';
-          
-          setTimeout(() => {
-            btn.textContent = originalText;
-            btn.style.backgroundColor = '';
-          }, 2000);
+          this.showIconFeedback(btn, 'success');
+          new Notice('内容已复制到剪贴板！可直接粘贴到微信公众号编辑器', 3000);
           return;
         }
         
         // 方案2: 选区复制 (execCommand)
-        console.log('尝试使用选区复制 (方案2)');
         const range = document.createRange();
         const selection = window.getSelection();
         
-        range.selectNodeContents(contentArea); // 选择内容而非节点本身
+        range.selectNodeContents(contentArea);
         selection?.removeAllRanges();
         selection?.addRange(range);
         
-        console.log('选区建立完成，范围:', range.toString().substring(0, 100));
-        
-        // 尝试 execCommand 复制
         const execSuccess = document.execCommand('copy');
-        console.log('execCommand 结果:', execSuccess);
-        
-        // 清除选区
         selection?.removeAllRanges();
         
         if (execSuccess) {
-          btn.textContent = '复制成功!';
-          btn.style.backgroundColor = '#34c759';
-          
-          setTimeout(() => {
-            btn.textContent = originalText;
-            btn.style.backgroundColor = '';
-          }, 2000);
+          this.showIconFeedback(btn, 'success');
+          new Notice('内容已复制到剪贴板！', 2000);
           return;
         }
         
         // 方案3: 回退到纯文本 Clipboard API
         if (navigator.clipboard && navigator.clipboard.writeText) {
-          console.log('尝试纯文本复制 (方案3)');
           const textContent = contentArea.textContent || (contentArea as HTMLElement).innerText || '';
           await navigator.clipboard.writeText(textContent);
           
-          btn.textContent = '文本已复制';
-          btn.style.backgroundColor = '#f39c12';
-          
-          setTimeout(() => {
-            btn.textContent = originalText;
-            btn.style.backgroundColor = '';
-          }, 2000);
-          
-          console.log('纯文本复制成功');
+          this.showIconFeedback(btn, 'info');
+          new Notice('纯文本已复制到剪贴板（不包含格式）', 2500);
           return;
         }
         
         throw new Error('所有复制方案均失败');
         
       } catch (error) {
-        console.error('复制过程出错:', error);
-        console.error('错误详情:', {
-          name: error.name,
-          message: error.message,
-          stack: error.stack
-        });
-        
-        // 错误状态反馈
-        btn.textContent = '复制失败';
-        btn.style.backgroundColor = '#ff3b30';
-        
-        setTimeout(() => {
-          btn.textContent = originalText;
-          btn.style.backgroundColor = '';
-        }, 2000);
-        
-        // 方案4: 手动复制指导
+        this.showIconFeedback(btn, 'error');
+        new Notice('复制失败，请尝试手动复制', 3000);
         this.showManualCopyGuidance();
       }
     } else {
-      console.log('没有可复制的内容');
-      alert('没有可复制的内容，请先执行排版操作。');
+      new Notice('没有可复制的内容，请先执行排版操作');
     }
   }
 
   private showManualCopyGuidance() {
-    // 创建提示模态框或提示信息
     const guidance = `复制失败，请手动操作：
     
 1. 用鼠标选中预览窗口中的所有内容
 2. 按 Ctrl+C (Windows/Linux) 或 Cmd+C (Mac) 复制
-3. 在微信公众号编辑器中按 Ctrl+V 粘贴
-
-如果仍有问题，请检查浏览器权限设置。`;
+3. 在微信公众号编辑器中按 Ctrl+V 粘贴`;
     
-    alert(guidance);
+    new Notice(guidance, 5000);
     
-    // 可选：自动选择内容区域便于用户手动复制
+    // 自动选择内容区域便于用户手动复制
     try {
       const contentArea = this.previewContainer.querySelector('.md2wechat-content-area');
       if (contentArea) {
@@ -215,35 +462,24 @@ export class Md2WechatView extends ItemView {
         const selection = window.getSelection();
         selection?.removeAllRanges();
         selection?.addRange(range);
-        console.log('已自动选择内容，用户可手动复制');
       }
     } catch (error) {
-      console.log('无法自动选择内容:', error);
+      // 静默处理错误
     }
   }
 
   private openWechat() {
-    // 打开微信公众号平台
     const wechatUrl = 'https://mp.weixin.qq.com';
     
     try {
-      // 在新标签页中打开
       window.open(wechatUrl, '_blank');
       
-      // 按钮反馈
-      const btn = this.toolbarEl.querySelector('.md2wechat-wechat-btn') as HTMLElement;
-      const originalText = btn.textContent;
-      btn.textContent = '已打开';
-      btn.style.backgroundColor = '#10ac84';
-      
-      setTimeout(() => {
-        btn.textContent = originalText;
-        btn.style.backgroundColor = '';
-      }, 1500);
+      const btn = this.toolbarEl.querySelector('.md2wechat-wechat-icon') as HTMLElement;
+      this.showIconFeedback(btn, 'success');
+      new Notice('微信公众号后台已在新标签页打开', 2000);
       
     } catch (error) {
-      console.error('打开微信公众号失败:', error);
-      alert('无法打开微信公众号，请手动访问 https://mp.weixin.qq.com');
+      new Notice('无法打开微信公众号，请手动访问 https://mp.weixin.qq.com');
     }
   }
 
@@ -260,7 +496,7 @@ export class Md2WechatView extends ItemView {
   }
 
   async onOpen() {
-    // 视图已在 initializeView 中初始化
+    this.initializeView();
   }
 
   async onClose() {
@@ -268,13 +504,140 @@ export class Md2WechatView extends ItemView {
     this.contentWrapper?.empty();
   }
 
+
+  // 图标视觉反馈方法 - 不破坏图标
+  private showIconFeedback(element: HTMLElement, type: 'success' | 'error' | 'info', duration: number = 1500) {
+    const className = `md2wechat-icon-${type}`;
+    
+    // 添加反馈样式
+    element.addClass(className);
+    
+    // 移除反馈样式
+    setTimeout(() => {
+      element.removeClass(className);
+    }, duration);
+  }
+
+  // 抽屉交互方法
+  private toggleDrawer() {
+    if (this.isDrawerOpen) {
+      this.closeDrawer();
+    } else {
+      this.openDrawer();
+    }
+  }
+
+  private openDrawer() {
+    this.isDrawerOpen = true;
+    this.drawerEl.addClass('md2wechat-drawer-open');
+    this.overlayEl.addClass('md2wechat-overlay-visible');
+    
+    const settingsIcon = this.toolbarEl.querySelector('.md2wechat-settings-icon');
+    settingsIcon?.addClass('md2wechat-icon-active');
+    
+    // 防止页面滚动
+    document.body.style.overflow = 'hidden';
+  }
+
+  private closeDrawer() {
+    this.isDrawerOpen = false;
+    this.drawerEl.removeClass('md2wechat-drawer-open');
+    this.overlayEl.removeClass('md2wechat-overlay-visible');
+    
+    const settingsIcon = this.toolbarEl.querySelector('.md2wechat-settings-icon');
+    settingsIcon?.removeClass('md2wechat-icon-active');
+    
+    // 恢复页面滚动
+    document.body.style.overflow = '';
+  }
+
+  // 主题和字体变更处理已经集成到自定义选择器中
+
+  // 触发重新转换 - 智能处理样式更新
+  private async triggerReconversion() {
+    const contentArea = this.previewContainer?.querySelector('.md2wechat-content-area');
+    if (contentArea && !contentArea.querySelector('.md2wechat-placeholder')) {
+      // 优先使用存储的 Markdown 内容重新转换
+      if (this.currentMarkdownContent) {
+        try {
+          await this.reconvertWithStoredContent(this.currentMarkdownContent);
+          return;
+        } catch (error) {
+          // 存储内容转换失败，尝试从活跃编辑器获取
+        }
+      }
+      
+      // 回退到从活跃编辑器获取内容
+      const activeView = this.plugin.app.workspace.getActiveViewOfType(MarkdownView);
+      if (activeView) {
+        try {
+          await this.plugin.convertToWechatHTML();
+        } catch (error) {
+          // 静默处理错误
+        }
+      }
+    }
+  }
+  
+  // 使用存储的 Markdown 内容重新转换
+  private async reconvertWithStoredContent(markdownContent: string) {
+    if (!this.plugin.settings.apiKey) {
+      return; // 没有 API Key 时静默返回
+    }
+
+    try {
+      // 准备请求数据
+      const requestData = {
+        markdown: markdownContent,
+        theme: this.plugin.settings.theme,
+        fontSize: this.plugin.settings.fontSize,
+      };
+
+      const response = await fetch('https://www.md2wechat.cn/api/convert', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-Key': this.plugin.settings.apiKey,
+        },
+        body: JSON.stringify(requestData),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const result = await response.json();
+      
+      if (result.code === 0 && result.data && result.data.html) {
+        this.setContent(result.data.html);
+        new Notice('样式已更新！');
+      } else {
+        throw new Error(result.msg || '转换失败');
+      }
+
+    } catch (error) {
+      // 静默处理错误，不显示错误提示
+      console.log('样式重新应用失败:', error.message);
+    }
+  }
+
+  // 更新设置控件值（自定义选择器不需要此方法）
+  updateSettingsControls() {
+    // 自定义选择器自动显示正确的值
+  }
+
   // 用于外部更新内容的方法
-  setContent(html: string) {
+  setContent(html: string, markdownContent?: string) {
     const contentArea = this.previewContainer?.querySelector('.md2wechat-content-area');
     if (contentArea) {
       contentArea.innerHTML = html;
       // 添加滚动到顶部
       contentArea.scrollTop = 0;
+      
+      // 存储 Markdown 内容以便后续样式切换
+      if (markdownContent) {
+        this.currentMarkdownContent = markdownContent;
+      }
     }
   }
 }

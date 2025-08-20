@@ -15,7 +15,7 @@ export default class Md2WechatPlugin extends Plugin {
     // 注册自定义视图
     this.registerView(
       MD2WECHAT_VIEW_TYPE,
-      (leaf) => new Md2WechatView(leaf)
+      (leaf) => new Md2WechatView(leaf, this)
     );
 
     // 添加功能区图标按钮
@@ -44,7 +44,14 @@ export default class Md2WechatPlugin extends Plugin {
   }
 
   async loadSettings() {
-    this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+    const loadedData = await this.loadData();
+    this.settings = Object.assign({}, DEFAULT_SETTINGS, loadedData);
+    
+    console.log('🔧 插件设置已加载:', {
+      default: DEFAULT_SETTINGS,
+      loaded: loadedData, 
+      final: this.settings
+    });
   }
 
   async saveSettings() {
@@ -147,7 +154,7 @@ export default class Md2WechatPlugin extends Plugin {
       if (result.code === 0) {
         if (result.data && result.data.html) {
           console.log('转换成功，HTML 长度:', result.data.html.length);
-          this.showResultInView(result.data.html);
+          this.showResultInView(result.data.html, markdownContent);
           new Notice('排版成功！');
         } else {
           console.error('成功响应但缺少 HTML 数据:', result);
@@ -188,7 +195,7 @@ export default class Md2WechatPlugin extends Plugin {
   }
 
   // 在新视图中显示结果
-  async showResultInView(html: string) {
+  async showResultInView(html: string, markdownContent?: string) {
     // 先分离已存在的同类型叶子
     this.app.workspace.detachLeavesOfType(MD2WECHAT_VIEW_TYPE);
 
@@ -204,7 +211,8 @@ export default class Md2WechatPlugin extends Plugin {
         this.app.workspace.revealLeaf(newLeaf);
         const view = newLeaf.view as Md2WechatView;
         if (view instanceof Md2WechatView) {
-            view.setContent(html);
+            view.updateSettingsControls();
+            view.setContent(html, markdownContent);
         }
     }
   }
@@ -238,28 +246,10 @@ class Md2WechatSettingTab extends PluginSettingTab {
           await this.plugin.saveSettings();
         }));
 
-    new Setting(containerEl)
-      .setName('主题名称')
-      .setDesc('选择你喜欢的排版主题。')
-      .addText(text => text
-        .setPlaceholder('例如：default')
-        .setValue(this.plugin.settings.theme)
-        .onChange(async (value) => {
-          this.plugin.settings.theme = value;
-          await this.plugin.saveSettings();
-        }));
-
-    new Setting(containerEl)
-      .setName('字号大小')
-      .setDesc('选择正文的字号大小。')
-      .addDropdown(dropdown => dropdown
-        .addOption('small', '小号')
-        .addOption('medium', '中等')
-        .addOption('large', '大号')
-        .setValue(this.plugin.settings.fontSize)
-        .onChange(async (value: 'small' | 'medium' | 'large') => {
-          this.plugin.settings.fontSize = value;
-          await this.plugin.saveSettings();
-        }));
+    // 添加说明文本
+    containerEl.createEl('p', {
+      text: '💡 主题和字体大小设置已移到预览窗口的工具栏中，方便实时调整和预览效果。',
+      cls: 'setting-item-description'
+    });
   }
 }

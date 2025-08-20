@@ -9,8 +9,8 @@
   background: var(--background-primary);
 }
 
-/* 工具栏 - 顶部固定 */
-.md2wechat-toolbar {
+/* 极简工具栏设计 */
+.md2wechat-minimal-toolbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -18,62 +18,330 @@
   background: var(--background-secondary);
   border-bottom: 1px solid var(--background-modifier-border);
   flex-shrink: 0;
-  min-height: 44px;
+  min-height: 48px;
 }
 
 .md2wechat-toolbar-title {
   font-weight: 600;
+  font-size: 15px;
+  color: var(--text-normal);
+  margin: 0;
+}
+
+/* 纯图标组 - 无容器，仿照官方左侧工具栏 */
+.md2wechat-icon-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* 纯图标样式 - 完全无容器背景 */
+.md2wechat-icon {
+  width: 18px;
+  height: 18px;
+  color: var(--icon-color);
+  cursor: pointer;
+  transition: color 0.1s ease-in-out;
+  flex-shrink: 0;
+}
+
+.md2wechat-icon:hover {
+  color: var(--icon-color-hover);
+}
+
+.md2wechat-icon:active {
+  color: var(--icon-color-active);
+}
+
+.md2wechat-icon-active {
+  color: var(--interactive-accent) !important;
+}
+
+/* 图标反馈状态 */
+.md2wechat-icon-success {
+  color: #10ac84 !important;
+  transform: scale(1.1);
+  transition: all 0.2s ease;
+}
+
+.md2wechat-icon-error {
+  color: #ff3b30 !important;
+  transform: scale(1.1);
+  transition: all 0.2s ease;
+}
+
+.md2wechat-icon-info {
+  color: #f39c12 !important;
+  transform: scale(1.05);
+  transition: all 0.2s ease;
+}
+
+/* SVG 图标直接样式 - 官方风格 */
+.md2wechat-icon svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  stroke: currentColor;
+  fill: currentColor;
+  stroke-width: 0;
+}
+
+.md2wechat-drawer-close-btn svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  fill: none;
+}
+
+/* 遮罩层 */
+.md2wechat-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 1000;
+  backdrop-filter: blur(2px);
+}
+
+.md2wechat-overlay-visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* 抽屉面板 */
+.md2wechat-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 320px;
+  height: 100vh;
+  background: var(--background-primary);
+  border-left: 1px solid var(--background-modifier-border);
+  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.1);
+  transform: translateX(100%);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 1001;
+  display: flex;
+  flex-direction: column;
+}
+
+.md2wechat-drawer-open {
+  transform: translateX(0);
+}
+
+/* 抽屉头部 */
+.md2wechat-drawer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px 16px 24px;
+  border-bottom: 1px solid var(--background-modifier-border);
+  flex-shrink: 0;
+}
+
+.md2wechat-drawer-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-normal);
+  margin: 0;
+}
+
+/* 抽屉关闭图标 - 纯图标样式 */
+.md2wechat-drawer-close-icon {
+  width: 16px;
+  height: 16px;
+  color: var(--icon-color);
+  cursor: pointer;
+  transition: color 0.1s ease-in-out;
+  flex-shrink: 0;
+}
+
+.md2wechat-drawer-close-icon:hover {
+  color: var(--icon-color-hover);
+}
+
+.md2wechat-drawer-close-icon svg {
+  width: 100%;
+  height: 100%;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+}
+
+/* 抽屉内容 */
+.md2wechat-drawer-content {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+}
+
+/* 抽屉设置项 */
+.md2wechat-drawer-section {
+  margin-bottom: 24px;
+}
+
+.md2wechat-drawer-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-normal);
+  margin-bottom: 8px;
+}
+
+.md2wechat-drawer-select {
+  width: 100%;
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+  padding: 12px 16px;
   font-size: 14px;
   color: var(--text-normal);
-  display: flex;
-  align-items: center;
-}
-
-/* 按钮组布局 */
-.md2wechat-button-group {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-/* 基础按钮样式 */
-.md2wechat-copy-btn,
-.md2wechat-wechat-btn {
-  border: none;
-  border-radius: 6px;
-  padding: 6px 12px;
-  font-size: 12px;
-  font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
-  white-space: nowrap;
+  font-family: var(--font-interface);
+  
+  /* 🔧 强制确保select选项可见性 */
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%236c757d' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px 12px;
+  
+  /* 确保在transform容器中正常渲染 */
+  transform: translateZ(0);
+  will-change: contents;
 }
 
-.md2wechat-copy-btn {
+.md2wechat-drawer-select:hover {
+  border-color: var(--interactive-accent);
+  background: var(--background-modifier-hover);
+}
+
+.md2wechat-drawer-select:focus {
+  outline: none;
+  border-color: var(--interactive-accent);
+  box-shadow: 0 0 0 3px var(--interactive-accent-alpha);
+}
+
+/* 🔧 强制option元素正确显示 */
+.md2wechat-drawer-select option {
+  background: var(--background-secondary);
+  color: var(--text-normal);
+  padding: 8px 12px;
+  border: none;
+  font-size: 14px;
+  font-family: var(--font-interface);
+}
+
+.md2wechat-drawer-select option:checked,
+.md2wechat-drawer-select option[selected] {
   background: var(--interactive-accent);
   color: var(--text-on-accent);
+  font-weight: 500;
 }
 
-.md2wechat-wechat-btn {
-  background: var(--interactive-normal);
-  color: var(--text-normal);
+/* 🔧 自定义选择器样式 - 完全替代原生select */
+.md2wechat-custom-select {
+  position: relative;
+  width: 100%;
+}
+
+.md2wechat-custom-select-button {
+  width: 100%;
+  background: var(--background-secondary);
   border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 14px;
+  color: var(--text-normal);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: var(--font-interface);
+  text-align: left;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  outline: none;
 }
 
-.md2wechat-copy-btn:hover {
-  background: var(--interactive-accent-hover);
-  transform: translateY(-1px);
+.md2wechat-custom-select-button:hover {
+  border-color: var(--interactive-accent);
+  background: var(--background-modifier-hover);
 }
 
-.md2wechat-wechat-btn:hover {
-  background: var(--interactive-hover);
-  transform: translateY(-1px);
+.md2wechat-custom-select-button:focus {
+  border-color: var(--interactive-accent);
+  box-shadow: 0 0 0 3px var(--interactive-accent-alpha);
 }
 
-.md2wechat-copy-btn:active,
-.md2wechat-wechat-btn:active {
+.md2wechat-custom-select-arrow {
+  font-size: 12px;
+  color: var(--text-muted);
+  transition: transform 0.2s ease;
+  margin-left: 8px;
+  flex-shrink: 0;
+}
+
+.md2wechat-custom-select-options {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  max-height: 200px;
+  overflow-y: auto;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-8px);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  margin-top: 4px;
+}
+
+.md2wechat-custom-select-options-open {
+  opacity: 1;
+  visibility: visible;
   transform: translateY(0);
 }
+
+.md2wechat-custom-select-option {
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: background-color 0.1s ease;
+  border-bottom: 1px solid var(--background-modifier-border-hover);
+  font-size: 14px;
+  color: var(--text-normal);
+}
+
+.md2wechat-custom-select-option:last-child {
+  border-bottom: none;
+}
+
+.md2wechat-custom-select-option:hover {
+  background: var(--background-modifier-hover);
+}
+
+.md2wechat-custom-select-option-selected {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  font-weight: 500;
+}
+
+.md2wechat-custom-select-option-selected:hover {
+  background: var(--interactive-accent-hover);
+}
+
+
 
 /* 预览容器 - 主内容区域 */
 .md2wechat-preview-container {
@@ -255,23 +523,49 @@
     border-radius: 3px;
   }
   
-  .md2wechat-toolbar {
-    padding: 8px 8px;
-    min-height: 36px;
+  .md2wechat-minimal-toolbar {
+    padding: 8px 12px;
+    min-height: 44px;
   }
   
   .md2wechat-toolbar-title {
-    font-size: 12px;
+    font-size: 13px;
   }
   
-  .md2wechat-button-group {
-    gap: 4px;
+  .md2wechat-icon-group {
+    gap: 10px;
   }
   
-  .md2wechat-copy-btn,
-  .md2wechat-wechat-btn {
-    padding: 4px 8px;
-    font-size: 11px;
+  .md2wechat-icon {
+    width: 16px;
+    height: 16px;
+  }
+  
+  /* 抽屉在极窄屏幕下占满宽度 */
+  .md2wechat-drawer {
+    width: 100vw;
+    left: 0;
+  }
+  
+  .md2wechat-drawer-header {
+    padding: 16px 16px 12px 16px;
+  }
+  
+  .md2wechat-drawer-title {
+    font-size: 16px;
+  }
+  
+  .md2wechat-drawer-content {
+    padding: 16px;
+  }
+  
+  .md2wechat-drawer-section {
+    margin-bottom: 20px;
+  }
+  
+  .md2wechat-drawer-select {
+    padding: 10px 12px;
+    font-size: 13px;
   }
   
   .md2wechat-placeholder {
@@ -323,17 +617,61 @@
     padding: 16px 10px;
   }
   
-  .md2wechat-toolbar {
-    padding: 10px 10px;
+  .md2wechat-minimal-toolbar {
+    padding: 10px 14px;
   }
   
   .md2wechat-toolbar-title {
-    font-size: 13px;
+    font-size: 14px;
+  }
+  
+  .md2wechat-icon-group {
+    gap: 11px;
+  }
+  
+  .md2wechat-icon {
+    width: 17px;
+    height: 17px;
+  }
+  
+  .md2wechat-drawer {
+    width: 280px;
+  }
+  
+  .md2wechat-drawer-header {
+    padding: 18px 20px 14px 20px;
+  }
+  
+  .md2wechat-drawer-title {
+    font-size: 17px;
+  }
+  
+  .md2wechat-drawer-content {
+    padding: 20px;
+  }
+  
+  .md2wechat-drawer-section {
+    margin-bottom: 22px;
   }
   
   .md2wechat-placeholder {
     padding: 20px 10px;
     min-height: 240px;
+  }
+}
+
+/* 中等侧边栏 (350px - 499px) - 标准布局 */
+@container (min-width: 350px) and (max-width: 499px) {
+  .md2wechat-minimal-toolbar {
+    padding: 11px 16px;
+  }
+  
+  .md2wechat-drawer {
+    width: 300px;
+  }
+  
+  .md2wechat-drawer-content {
+    padding: 22px;
   }
 }
 
@@ -345,8 +683,53 @@
     max-width: 420px; /* 恢复最佳阅读宽度限制 */
   }
   
-  .md2wechat-toolbar {
-    padding: 12px 20px;
+  .md2wechat-minimal-toolbar {
+    padding: 14px 20px;
+    min-height: 52px;
+  }
+  
+  .md2wechat-toolbar-title {
+    font-size: 16px;
+  }
+  
+  .md2wechat-icon-group {
+    gap: 14px;
+  }
+  
+  .md2wechat-icon {
+    width: 20px;
+    height: 20px;
+  }
+  
+  .md2wechat-drawer {
+    width: 360px;
+  }
+  
+  .md2wechat-drawer-header {
+    padding: 24px 28px 20px 28px;
+  }
+  
+  .md2wechat-drawer-title {
+    font-size: 20px;
+  }
+  
+  .md2wechat-drawer-content {
+    padding: 28px;
+  }
+  
+  .md2wechat-drawer-section {
+    margin-bottom: 28px;
+  }
+  
+  .md2wechat-drawer-label {
+    font-size: 15px;
+    margin-bottom: 10px;
+  }
+  
+  .md2wechat-drawer-select {
+    padding: 14px 18px;
+    font-size: 15px;
+    border-radius: 10px;
   }
   
   .md2wechat-placeholder {
