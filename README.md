@@ -272,6 +272,10 @@ const response = await fetch('https://www.md2wechat.cn/api/convert', {
 - [极简美学排版神器](https://www.md2wechat.cn) - 提供强大的转换 API 服务
 - Obsidian 社区的所有贡献者
 
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=geekjourneyx/obsidian-md2wechat&type=Date)](https://www.star-history.com/#geekjourneyx/obsidian-md2wechat&Date)
+
 ## 📞 联系与交流
 
 ### 👨‍💻 作者信息
