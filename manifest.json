@@ -1,7 +1,7 @@
 {
 	"id": "obsidian-md2wechat",
 	"name": "公众号排版助手",
-	"version": "1.0.1",
+	"version": "1.0.2",
 	"minAppVersion": "0.15.0",
 	"description": "一键调用 md2wechat API，将 Markdown 内容转换为公众号样式。",
 	"author": "geekjourneyx",
