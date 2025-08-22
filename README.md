@@ -8,7 +8,7 @@
 
 ![插件操作演示](intro.gif)
 
-![Version](https://img.shields.io/badge/version-1.0.1-blue.svg)
+![Version](https://img.shields.io/badge/version-1.0.3-blue.svg)
 ![Obsidian](https://img.shields.io/badge/obsidian-%3E%3D0.15.0-purple.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![TypeScript](https://img.shields.io/badge/typescript-4.7.4-blue.svg)
