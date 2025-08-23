@@ -1,6 +1,6 @@
 // view.ts
 
-import { ItemView, WorkspaceLeaf, setIcon, Notice, MarkdownView } from 'obsidian';
+import { ItemView, WorkspaceLeaf, setIcon, Notice, MarkdownView, requestUrl } from 'obsidian';
 import type Md2WechatPlugin from './main';
 
 export const MD2WECHAT_VIEW_TYPE = 'md2wechat-html-view';
@@ -367,23 +367,31 @@ export class Md2WechatView extends ItemView {
   }
 
   private setInitialContent(container: HTMLElement) {
-    container.innerHTML = `
-      <div class="md2wechat-placeholder">
-        <div class="md2wechat-placeholder-icon">📰</div>
-        <h3>公众号排版预览</h3>
-        <p>请在 Markdown 文件中点击功能区按钮或使用命令面板执行排版</p>
-        <div class="md2wechat-placeholder-steps">
-          <div class="step">1. 打开 Markdown 文件</div>
-          <div class="step">2. 点击左侧 📰 图标</div>
-          <div class="step">3. 查看转换效果</div>
-        </div>
-      </div>
-    `;
+    // 使用 DOM API 创建元素，避免 innerHTML 安全风险
+    container.empty();
+    
+    const placeholderDiv = container.createEl('div', { cls: 'md2wechat-placeholder' });
+    
+    placeholderDiv.createEl('div', { 
+      cls: 'md2wechat-placeholder-icon',
+      text: '📰'
+    });
+    
+    placeholderDiv.createEl('h3', { text: '公众号排版预览' });
+    
+    placeholderDiv.createEl('p', { 
+      text: '请在 Markdown 文件中点击功能区按钮或使用命令面板执行排版'
+    });
+    
+    const stepsDiv = placeholderDiv.createEl('div', { cls: 'md2wechat-placeholder-steps' });
+    stepsDiv.createEl('div', { cls: 'step', text: '1. 打开 Markdown 文件' });
+    stepsDiv.createEl('div', { cls: 'step', text: '2. 点击左侧 📰 图标' });
+    stepsDiv.createEl('div', { cls: 'step', text: '3. 查看转换效果' });
   }
 
   private async copyContent() {
     const contentArea = this.previewContainer.querySelector('.md2wechat-content-area');
-    if (contentArea && contentArea.innerHTML && !contentArea.querySelector('.md2wechat-placeholder')) {
+    if (contentArea && contentArea.children.length > 0 && !contentArea.querySelector('.md2wechat-placeholder')) {
       const btn = this.toolbarEl.querySelector('.md2wechat-copy-icon') as HTMLElement;
       
       try {
@@ -535,8 +543,8 @@ export class Md2WechatView extends ItemView {
     const settingsIcon = this.toolbarEl.querySelector('.md2wechat-settings-icon');
     settingsIcon?.addClass('md2wechat-icon-active');
     
-    // 防止页面滚动
-    document.body.style.overflow = 'hidden';
+    // 通过 CSS 类控制页面滚动，而不是直接操作样式
+    document.body.addClass('md2wechat-no-scroll');
   }
 
   private closeDrawer() {
@@ -547,8 +555,8 @@ export class Md2WechatView extends ItemView {
     const settingsIcon = this.toolbarEl.querySelector('.md2wechat-settings-icon');
     settingsIcon?.removeClass('md2wechat-icon-active');
     
-    // 恢复页面滚动
-    document.body.style.overflow = '';
+    // 通过移除 CSS 类来恢复页面滚动
+    document.body.removeClass('md2wechat-no-scroll');
   }
 
   // 主题和字体变更处理已经集成到自定义选择器中
@@ -593,7 +601,8 @@ export class Md2WechatView extends ItemView {
         fontSize: this.plugin.settings.fontSize,
       };
 
-      const response = await fetch('https://www.md2wechat.cn/api/convert', {
+      const response = await requestUrl({
+        url: 'https://www.md2wechat.cn/api/convert',
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -602,11 +611,11 @@ export class Md2WechatView extends ItemView {
         body: JSON.stringify(requestData),
       });
 
-      if (!response.ok) {
+      if (response.status >= 400) {
         throw new Error(`HTTP ${response.status}`);
       }
 
-      const result = await response.json();
+      const result = response.json;
       
       if (result.code === 0 && result.data && result.data.html) {
         this.setContent(result.data.html);
@@ -617,7 +626,7 @@ export class Md2WechatView extends ItemView {
 
     } catch (error) {
       // 静默处理错误，不显示错误提示
-      console.log('样式重新应用失败:', error.message);
+      // 样式重新应用失败，静默处理
     }
   }
 
@@ -630,7 +639,22 @@ export class Md2WechatView extends ItemView {
   setContent(html: string, markdownContent?: string) {
     const contentArea = this.previewContainer?.querySelector('.md2wechat-content-area');
     if (contentArea) {
-      contentArea.innerHTML = html;
+      // 基本的 HTML 安全验证 - 确保内容来自可信的 API 源
+      if (typeof html === 'string' && html.length > 0) {
+        // 使用 DOM API 创建临时容器进行解析和清理
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = html;
+        
+        // 移除潜在的危险脚本标签
+        const scripts = tempDiv.querySelectorAll('script');
+        scripts.forEach(script => script.remove());
+        
+        // 设置清理后的内容
+        contentArea.innerHTML = tempDiv.innerHTML;
+      } else {
+        contentArea.empty();
+      }
+      
       // 添加滚动到顶部
       contentArea.scrollTop = 0;
       

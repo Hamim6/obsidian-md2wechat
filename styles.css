@@ -1,5 +1,10 @@
 /* 公众号排版助手 - 专业预览视图样式 */
 
+/* 全局样式 - 控制页面滚动 */
+body.md2wechat-no-scroll {
+  overflow: hidden !important;
+}
+
 /* 主容器 - 占满整个视图区域 */
 .md2wechat-view-wrapper {
   display: flex;

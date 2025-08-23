@@ -1,6 +1,6 @@
 // main.ts
 
-import { App, Editor, MarkdownView, Notice, Plugin, PluginSettingTab, Setting, WorkspaceLeaf } from 'obsidian';
+import { App, Editor, MarkdownView, Notice, Plugin, PluginSettingTab, Setting, WorkspaceLeaf, requestUrl } from 'obsidian';
 import { Md2WechatSettings, DEFAULT_SETTINGS } from './settings';
 import { Md2WechatView, MD2WECHAT_VIEW_TYPE } from './view';
 
@@ -39,19 +39,15 @@ export default class Md2WechatPlugin extends Plugin {
   }
 
   onunload() {
-    console.log('正在卸载公众号排版助手插件...');
-    this.app.workspace.detachLeavesOfType(MD2WECHAT_VIEW_TYPE);
+    // 插件卸载时的清理工作
+    // 不在此处手动分离视图叶子，让 Obsidian 自动处理
   }
 
   async loadSettings() {
     const loadedData = await this.loadData();
     this.settings = Object.assign({}, DEFAULT_SETTINGS, loadedData);
     
-    console.log('🔧 插件设置已加载:', {
-      default: DEFAULT_SETTINGS,
-      loaded: loadedData, 
-      final: this.settings
-    });
+    // 设置已加载
   }
 
   async saveSettings() {
@@ -85,18 +81,10 @@ export default class Md2WechatPlugin extends Plugin {
         fontSize: this.settings.fontSize,
       };
 
-      console.log('发送 API 请求:', {
-        url: 'https://www.md2wechat.cn/api/convert',
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-API-Key': this.settings.apiKey ? '***已设置***' : '未设置',
-        },
-        body: requestData,
-        markdownLength: markdownContent.length,
-      });
+      // 发送 API 请求
 
-      const response = await fetch('https://www.md2wechat.cn/api/convert', {
+      const response = await requestUrl({
+        url: 'https://www.md2wechat.cn/api/convert',
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -105,46 +93,28 @@ export default class Md2WechatPlugin extends Plugin {
         body: JSON.stringify(requestData),
       });
 
-      console.log('HTTP 响应状态:', {
-        status: response.status,
-        statusText: response.statusText,
-        ok: response.ok,
-        contentType: response.headers.get('content-type'),
-      });
-
-      // 先获取响应文本，便于调试
-      const responseText = await response.text();
-      console.log('原始响应内容:', responseText);
-
-      if (!response.ok) {
-        let errorMessage = `HTTP 请求失败 - 状态码: ${response.status} (${response.statusText})`;
+      // 检查响应状态
+      if (response.status >= 400) {
+        let errorMessage = `HTTP 请求失败 - 状态码: ${response.status}`;
         
         // 尝试解析错误响应
         try {
-          const errorData = JSON.parse(responseText);
-          if (errorData.msg) {
+          const errorData = response.json;
+          if (errorData && errorData.msg) {
             errorMessage += `\n错误信息: ${errorData.msg}`;
           }
-          if (errorData.code) {
+          if (errorData && errorData.code) {
             errorMessage += `\n错误码: ${errorData.code}`;
           }
-          console.log('解析的错误响应:', errorData);
         } catch (parseError) {
-          console.log('无法解析错误响应为 JSON:', parseError.message);
+          // 错误响应解析失败
         }
         
         throw new Error(errorMessage);
       }
 
-      // 解析 JSON 响应
-      let result;
-      try {
-        result = JSON.parse(responseText);
-        console.log('解析的 API 响应:', result);
-      } catch (parseError) {
-        console.error('JSON 解析失败:', parseError.message);
-        throw new Error(`服务器返回了无效的 JSON 数据: ${parseError.message}`);
-      }
+      // 获取解析后的 JSON 响应
+      const result = response.json;
 
       // 检查 API 响应格式和状态
       if (typeof result !== 'object' || result === null) {
@@ -153,7 +123,7 @@ export default class Md2WechatPlugin extends Plugin {
 
       if (result.code === 0) {
         if (result.data && result.data.html) {
-          console.log('转换成功，HTML 长度:', result.data.html.length);
+          // 转换成功
           this.showResultInView(result.data.html, markdownContent);
           new Notice('排版成功！');
         } else {
